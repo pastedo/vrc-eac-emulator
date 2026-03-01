@@ -8,14 +8,31 @@
 #include <cstdio>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <variant>
 
 class exception_handler {
-	static std::string format_variant(const std::variant<std::string, int64_t, uint64_t>& value) {
-		return std::visit([](auto&& arg) -> std::string {
-			std::ostringstream oss;
-			oss << arg;
-			return oss.str();
+	template <typename... Ts>
+	static std::string format_variant(const std::variant<Ts...>& value) {
+		if (value.valueless_by_exception()) {
+			return "<valueless>";
+		}
+
+		return std::visit([](const auto& arg) -> std::string {
+			using T = std::decay_t<decltype(arg)>;
+			if constexpr (std::is_same_v<T, bool>) {
+				return arg ? "true" : "false";
+			} else if constexpr (std::is_pointer_v<T>) {
+				std::ostringstream oss;
+				oss << static_cast<const void*>(arg);
+				return oss.str();
+			} else if constexpr (requires(std::ostringstream& os, const T& value) { os << value; }) {
+				std::ostringstream oss;
+				oss << arg;
+				return oss.str();
+			} else {
+				return "<unprintable>";
+			}
 		}, value);
 	}
 
