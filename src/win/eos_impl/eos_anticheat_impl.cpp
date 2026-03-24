@@ -1,4 +1,5 @@
 #include "../emulator_client.h"
+#include "../handler/handlers/client_packet_handler.h"
 #include "eos_anticheat_impl.h"
 #include "base64.hpp"
 #include "common/eos/eos_anticheat_types.h"
@@ -8,6 +9,7 @@
 #include "common/protocol/packets/receive_message_packet.h"
 
 #include <mutex>
+#include <vector>
 
 namespace {
 	std::mutex session_state_mutex;
@@ -40,7 +42,7 @@ EOS_DECLARE_FUNC(EOS_EResult)
 DummyEOS_AntiCheatClient_EndSession(EOS_HAntiCheatClient handle, const EOS_AntiCheatClient_EndSessionOptions* options) {
 	PLOGI.printf("Ending session");
 	auto packet = std::make_shared<end_session_packet>();
-	packet->options.ApiVersion = options->ApiVersion;
+	packet->options.ApiVersion = EOS_ANTICHEATCLIENT_ENDSESSION_API_LATEST;
 	emulator_client::get_instance()->send_packet(packet);
 	{
 		std::lock_guard lock(session_state_mutex);
@@ -85,10 +87,14 @@ void recreate_anticheat_session_if_needed() {
 		return;
 	}
 
-	PLOGW.printf("Connection was re-established. Recreating AntiCheat session...");
+	PLOGW.printf("Recreating AntiCheat session...");
 	auto end_packet = std::make_shared<end_session_packet>();
-	end_packet->options.ApiVersion = api_version;
+	end_packet->options.ApiVersion = EOS_ANTICHEATCLIENT_ENDSESSION_API_LATEST;
 	emulator_client::get_instance()->send_packet(end_packet);
+
+	// The outbound AntiCheat transport is armed by AddNotifyMessageToServer before the
+	// session starts during normal startup, so preserve that ordering during replay.
+	client_packet_handler::replay_notify_message_to_server_bindings();
 
 	auto begin_packet = std::make_shared<begin_session_packet>();
 	begin_packet->api_version = api_version;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "../handler_registry.h"
 #include "../packet_handler.h"
@@ -18,6 +19,7 @@ class client_packet_handler : public packet_handler {
 	std::weak_ptr<packet_sender> sender;
 	handler_registry registry;
 
+	static inline std::mutex notify_message_to_server_callbacks_mutex;
 	static inline std::vector<notify_message_to_server_callback> notify_message_to_server_callbacks;
 
 public:
@@ -28,6 +30,8 @@ public:
 	handler_registry& get_handler_registry() override;
 
 	static void add_notify_message_to_server(notify_message_to_server_callback callback);
+
+	static void replay_notify_message_to_server_bindings();
 
 private:
 	void handle_handshake(std::shared_ptr<packet> packet);

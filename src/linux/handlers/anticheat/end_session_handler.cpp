@@ -16,7 +16,7 @@ void end_session_handler::handle(std::shared_ptr<packet> packet) {
 	}
 
 	EOS_AntiCheatClient_EndSessionOptions options{};
-	options.ApiVersion = end_session->options.ApiVersion;
+	options.ApiVersion = EOS_ANTICHEATCLIENT_ENDSESSION_API_LATEST;
 	auto result = eos_anticheat::end_session(anticheat_interface, options);
 	if (result == EOS_Success) {
 		PLOGI.printf("AntiCheat session successfully ended");

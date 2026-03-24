@@ -1,4 +1,5 @@
 #include <future>
+#include <mutex>
 
 #include "../emulator_client.h"
 #include "../emulator_initializer.h"
@@ -8,9 +9,40 @@
 #include "common/eos/eos_general_types.h"
 #include "common/protocol/packets/initialize_eos_packet.h"
 
+namespace {
+	std::mutex initialize_state_mutex;
+	bool has_initialize_state = false;
+	int32_t last_initialize_api_version = 0;
+	nullable_string last_product_name;
+	nullable_string last_product_version;
+}
+
 EOS_DECLARE_FUNC(void)
 dummy_func() {
 	PLOGF.printf("This should never happened");
+}
+
+void replay_eos_initialize_if_needed() {
+	int32_t api_version = 0;
+	nullable_string product_name;
+	nullable_string product_version;
+	{
+		std::lock_guard lock(initialize_state_mutex);
+		if (!has_initialize_state) {
+			return;
+		}
+
+		api_version = last_initialize_api_version;
+		product_name = last_product_name;
+		product_version = last_product_version;
+	}
+
+	auto packet = std::make_shared<initialize_eos_packet>();
+	packet->api_version = api_version;
+	packet->product_name = product_name;
+	packet->product_version = product_version;
+	emulator_client::get_instance()->send_packet(packet);
+	PLOGI.printf("Replayed EOS_Initialize state");
 }
 
 EOS_DECLARE_FUNC(EOS_EResult)
@@ -27,6 +59,13 @@ DummyEOS_Initialize(EOS_InitializeOptions* options) {
 	packet->product_version = nullable_string(options->ProductVersion);
 
 	emulator_client::get_instance()->send_packet(packet);
+	{
+		std::lock_guard lock(initialize_state_mutex);
+		has_initialize_state = true;
+		last_initialize_api_version = packet->api_version;
+		last_product_name = packet->product_name;
+		last_product_version = packet->product_version;
+	}
 	PLOGI.printf("EOS_Initialize handled");
 
 	return EOS_Success;

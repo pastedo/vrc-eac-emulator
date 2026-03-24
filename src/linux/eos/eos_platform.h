@@ -14,4 +14,6 @@ public:
 	static EOS_HAntiCheatClient get_anticheat_client_interface();
 
 	static bool is_platform_created();
+
+	static void wait_for_platform_created();
 };

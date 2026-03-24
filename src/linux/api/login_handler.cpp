@@ -11,6 +11,7 @@
 
 #include "../eos/eos_connect.h"
 #include "../eos/eos_platform.h"
+#include "../servers/websocket_server.h"
 
 void EOS_CALL request_login_callback(const EOS_Connect_LoginCallbackInfo* data) {
 	if (data->ResultCode == EOS_Success) {
@@ -69,9 +70,22 @@ std::shared_ptr<response> login_handler::handle(std::shared_ptr<request> request
 
 	vlock<std::shared_ptr<login_response>> lock;
 	EOS_HConnect connect_interface = eos_platform::get_connect_interface();
-	if (connect_interface != 0) {
-		eos_connect::login(connect_interface, options, &lock, &request_login_callback);
+	if (connect_interface == 0) {
+		PLOGW.printf("Connect interface unavailable during login. Waiting for websocket reconnection and platform creation...");
+		websocket_server::wait_for_connection();
+		eos_platform::wait_for_platform_created();
+		connect_interface = eos_platform::get_connect_interface();
 	}
 
+	if (connect_interface == 0) {
+		PLOGE.printf("Connect interface is still unavailable after waiting");
+		auto response = std::make_shared<login_response>();
+		response->result_code = -1;
+		response->local_user_id = 0;
+		response->continuance_token = 0;
+		return response;
+	}
+
+	eos_connect::login(connect_interface, options, &lock, &request_login_callback);
 	return lock.wait();
 }

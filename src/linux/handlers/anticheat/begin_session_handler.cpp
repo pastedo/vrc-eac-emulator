@@ -27,7 +27,7 @@ void begin_session_handler::handle(std::shared_ptr<packet> packet) {
 
 	PLOGW.printf("BeginSession failed (%d). Trying EndSession -> BeginSession recovery", begin_result);
 	EOS_AntiCheatClient_EndSessionOptions end_options{};
-	end_options.ApiVersion = options.ApiVersion;
+	end_options.ApiVersion = EOS_ANTICHEATCLIENT_ENDSESSION_API_LATEST;
 	auto end_result = eos_anticheat::end_session(anticheat_interface, end_options);
 	if (end_result != EOS_Success) {
 		PLOGW.printf("Recovery EndSession returned %d", end_result);

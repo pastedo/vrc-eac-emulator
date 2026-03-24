@@ -2,6 +2,31 @@
 #include "common/eos/eos_api.h"
 #include "common/eos/eos_platform_types.h"
 #include "common/protocol/packets/create_platform_packet.h"
+#include "eos_platform_impl.h"
+
+#include <mutex>
+
+namespace {
+	std::mutex platform_state_mutex;
+	bool has_platform_state = false;
+	create_platform_packet last_platform_packet;
+}
+
+void replay_platform_create_if_needed() {
+	create_platform_packet stored_packet;
+	{
+		std::lock_guard lock(platform_state_mutex);
+		if (!has_platform_state) {
+			return;
+		}
+
+		stored_packet = last_platform_packet;
+	}
+
+	auto packet = std::make_shared<create_platform_packet>(stored_packet);
+	emulator_client::get_instance()->send_packet(packet);
+	PLOGI.printf("Replayed EOS_Platform_Create state");
+}
 
 EOS_DECLARE_FUNC(EOS_HPlatform)
 DummyEOS_Platform_Create(EOS_Platform_Options* options) {
@@ -31,6 +56,11 @@ DummyEOS_Platform_Create(EOS_Platform_Options* options) {
 		packet->task_network_timeout_seconds = *options->TaskNetworkTimeoutSeconds;
 	}
 	emulator_client::get_instance()->send_packet(packet);
+	{
+		std::lock_guard lock(platform_state_mutex);
+		has_platform_state = true;
+		last_platform_packet = *packet;
+	}
 	return 0x28B857C4A60;
 }
 
