@@ -26,7 +26,7 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 		nlohmann::json json;
 		json["tcp"] = 7777;
 		json["http"] = 7778;
-		json["logger"] = true;
+		json["logging"] = true;
 		utils::write_file("config.json", json.dump(4));
 
 		printf("\n\r\n\r");
@@ -39,8 +39,11 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
 	}
 
 	nlohmann::json json = nlohmann::json::parse(config.value());
-	bool use_logger = json["logger"];
-	utils::init_logger(false, use_logger ? plog::verbose : plog::none);
+	const bool use_logger = json.value("logging", json.value("logger", true));
+	utils::init_logger(
+		false,
+		use_logger ? plog::verbose : plog::none,
+		use_logger ? std::optional<std::string>{"eac-emulator-linux.log"} : std::nullopt);
 	bootstrapper::main(json["tcp"], json["http"]);
 
 	return TRUE;
