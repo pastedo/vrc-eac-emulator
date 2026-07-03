@@ -1,9 +1,11 @@
 # EasyAntiCheat Emulator on VRChat
 
 This project is a continuation of the original `vrc-eac-emulator`.
+
 It contains bug fixes and other improvements.
 
 This project does not, and will not, include a usage guide.
+
 If you want to use it, you're expected to figure it out yourself.
 
 ## Libraries used
