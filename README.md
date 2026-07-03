@@ -2,11 +2,12 @@
 
 This project is a continuation of the original `vrc-eac-emulator`.
 
-It contains bug fixes and other improvements.
+It includes bug fixes, improvements, and future enhancements.
 
-This project does not, and will not, include a usage guide.
-
-If you want to use it, you're expected to figure it out yourself.
+> [!NOTE]
+> This project does not, and will not, include a usage guide.
+> 
+> If you want to use it, you'll have to figure it out yourself.
 
 ## Libraries used
 
